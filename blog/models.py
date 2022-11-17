@@ -12,3 +12,6 @@ class Blog(Base):
     title = Column(String(50))
     body = Column(String(500))
     published_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    def __str__(self):
+        return title + ' ' + str(published_at)
