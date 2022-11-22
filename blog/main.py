@@ -9,6 +9,7 @@ app = FastAPI()
 
 # this is to create all the tables defined as classes in models.py file
 models.Base.metadata.create_all(bind=engine)
+hash_instance = Hash()
 
 
 def getBlogByID(id, db):
@@ -41,7 +42,8 @@ async def getBlog(id: int, db: Session = Depends(getDB)):
 async def storeBlog(blog: Blog, db: Session = Depends(getDB)):
     new_blog = models.Blog(
         title=blog.title,
-        body=blog.body
+        body=blog.body,
+        user_id=blog.user_id
     )
     db.add(new_blog)
     db.commit()
@@ -80,7 +82,6 @@ async def getUser(id: int, db: Session = Depends(getDB)):
 
 @app.post('/users', status_code=status.HTTP_201_CREATED, response_model=ShowUser, tags=['users'])
 async def storeUser(user: User, db: Session = Depends(getDB)):
-    hash_instance = Hash()
     hashed_password = hash_instance.encryptPassword(user.password)
     new_user = models.User(
         username=user.username,
@@ -93,3 +94,12 @@ async def storeUser(user: User, db: Session = Depends(getDB)):
     return new_user
 
 
+@app.put('/users', status_code=status.HTTP_202_ACCEPTED, tags=['users'])
+async def updateUser(id: int, user: User, db: Session = Depends(getDB)):
+    old_user = getUserByID(id, db)
+    checkInstance(old_user.first())
+    hashed_password = hash_instance.encryptPassword(user.password)
+    user.password = hashed_password
+    old_user.update(user.dict(), synchronize_session=False)
+    db.commit()
+    return {'message': 'user updated successfully!'}
