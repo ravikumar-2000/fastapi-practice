@@ -17,7 +17,7 @@ class Blog(Base):
     creator = relationship('User', back_populates='blogs')
 
     def __str__(self):
-        return title + ' ' + str(published_at)
+        return f'{title} {str(published_at)}'
 
 
 class User(Base):
@@ -30,3 +30,5 @@ class User(Base):
     password = Column(String(200), nullable=False)
 
     blogs = relationship('Blog', back_populates='creator')
+
+
