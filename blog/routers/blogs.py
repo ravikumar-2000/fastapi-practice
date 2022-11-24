@@ -1,50 +1,33 @@
 from fastapi import FastAPI, Depends, status, HTTPException, APIRouter
 from ..database import engine, SessionLocal, getDB
 from ..schemas import Blog, ShowBlog, User, ShowUser
-from .. import models
 from sqlalchemy.orm import Session
-from ..dependencies import *
+from ..controllers import blog_controller
+from .. import oauth2
 
-router = APIRouter()
-
-
-@router.get('/blogs', status_code=status.HTTP_200_OK, response_model=list[ShowBlog], tags=['blogs'])
-async def getBlogs(db: Session = Depends(getDB)):
-    return db.query(models.Blog).all()
+router = APIRouter(prefix="/blogs", tags=["blogs"])
 
 
-@router.get('/blogs/{id}', status_code=status.HTTP_200_OK, response_model=ShowBlog, tags=['blogs'])
-async def getBlog(id: int, db: Session = Depends(getDB)):
-    blog = getBlogByID(id, db).first()
-    checkInstance(blog)
-    return blog
+@router.get("/", status_code=status.HTTP_200_OK, response_model=list[ShowBlog])
+async def getBlogs(db: Session = Depends(getDB), current_user: User = Depends(oauth2.get_current_user)):
+    return blog_controller.getBlogs(db)
 
 
-@router.post('/blogs', status_code=status.HTTP_201_CREATED, tags=['blogs'])
-async def storeBlog(blog: Blog, db: Session = Depends(getDB)):
-    new_blog = models.Blog(
-        title=blog.title,
-        body=blog.body,
-        user_id=blog.user_id
-    )
-    db.add(new_blog)
-    db.commit()
-    db.refresh(new_blog)
-    return new_blog
+@router.get("/{id}", status_code=status.HTTP_200_OK, response_model=ShowBlog)
+async def getBlog(id: int, db: Session = Depends(getDB), current_user: User = Depends(oauth2.get_current_user)):
+    return blog_controller.getBlog(db, id)
 
 
-@router.put('/blogs/{id}', status_code=status.HTTP_202_ACCEPTED, tags=['blogs'])
-async def updateBlog(id: int, blog: Blog, db: Session = Depends(getDB)):
-    old_blog = getBlogByID(id, db)
-    checkInstance(old_blog.first())
-    old_blog.update(blog.dict(), synchronize_session=False)
-    db.commit()
-    return {'message': 'blog updated successfully!'}
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def storeBlog(blog: Blog, db: Session = Depends(getDB), current_user: User = Depends(oauth2.get_current_user)):
+    return blog_controller.storeBlog(db, blog)
 
 
-@router.delete('/blogs/{id}', status_code=status.HTTP_204_NO_CONTENT, tags=['blogs'])
-async def deleteBlog(id: int, db: Session = Depends(getDB)):
-    blog = getBlogByID(id, db)
-    checkInstance(blog.first())
-    blog.delete(synchronize_session=False)
-    db.commit()
+@router.put("/{id}", status_code=status.HTTP_202_ACCEPTED)
+async def updateBlog(id: int, blog: Blog, db: Session = Depends(getDB), current_user: User = Depends(oauth2.get_current_user)):
+    return blog_controller.updateBlog(db, id, blog)
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def deleteBlog(id: int, db: Session = Depends(getDB), current_user: User = Depends(oauth2.get_current_user)):
+    blog_controller.deleteBlog(db, id)

@@ -8,5 +8,5 @@ class Hash:
     def encryptPassword(self, password: str):
         return self.pwd_context.hash(password)
 
-    def decryptPassword(self, password: str):
-        return
+    def verifyPassword(self, plain_password: str, hashed_password: str):
+        return self.pwd_context.verify(plain_password, hashed_password)
